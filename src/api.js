@@ -9,5 +9,7 @@ async function getJSON(url) {
 
 export const getCotacoes = () => getJSON("/api/cotacoes");
 export const getCambio = () => getJSON("/api/cambio");
+export const getMercado = () => getJSON("/api/mercado");
+export const getClima = () => getJSON("/api/clima");
 export const getDetalhe = (slug, tf = "3M") =>
   getJSON(`/api/detalhe?slug=${encodeURIComponent(slug)}&tf=${encodeURIComponent(tf)}`);

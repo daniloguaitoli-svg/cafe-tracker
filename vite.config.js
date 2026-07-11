@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { getCotacoes, getDetalhe, getCambio } from "./server/datalayer.js";
+import { getCotacoes, getDetalhe, getCambio, getMercado, getClima } from "./server/datalayer.js";
 
 // API só de desenvolvimento: serve /api/cotacoes, /api/detalhe e /api/cambio a
 // partir da mesma camada de dados que roda em produção como funções serverless
@@ -20,6 +20,8 @@ function devApi() {
         try {
           if (url.pathname === "/api/cotacoes") return send(200, await getCotacoes());
           if (url.pathname === "/api/cambio") return send(200, await getCambio());
+          if (url.pathname === "/api/mercado") return send(200, await getMercado());
+          if (url.pathname === "/api/clima") return send(200, await getClima());
           if (url.pathname === "/api/detalhe") {
             const slug = url.searchParams.get("slug");
             if (!slug) return send(400, { error: "Faltou o parâmetro slug" });

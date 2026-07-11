@@ -13,8 +13,12 @@ import { lerNoticiasAgricolas } from "./providers/noticiasagricolas.js";
 import { usdbrl as getUsdbrl, getCambio as getCambioBCB } from "./providers/bcb.js";
 import { historicoKC } from "./providers/yahoo.js";
 import { widgetCepea } from "./providers/cepea.js";
+import { serieUSD } from "./providers/bcb.js";
+import { getClima as getClimaOM } from "./providers/openmeteo.js";
 import { registrar, serieSnapshots } from "./store.js";
 import { paraReaisPorSaca, deReaisPorSaca, arred, hojeISO, LB_POR_SACA } from "./util.js";
+
+const LB_POR_TON = 2204.6226; // libras-peso por tonelada métrica (p/ spread)
 
 const AVISO =
   "Dados de fontes públicas (CEPEA/ESALQ, ICE/NYBOT, B3, Banco Central via Notícias Agrícolas), " +
@@ -239,6 +243,77 @@ export async function getDetalhe(slug, tf = "3M") {
 
 export async function getCambio() {
   return getCambioBCB();
+}
+
+// Variação % entre o último ponto e o ponto mais próximo de ~diasAtras dias antes.
+// Retorna null se a série não alcança essa janela (evita "30D" falso quando só há
+// poucos dias de histórico, como nos snapshots recém-iniciados do CEPEA).
+function varDias(pontos, diasAtras) {
+  if (!pontos || pontos.length < 2) return null;
+  const ult = pontos[pontos.length - 1];
+  const alvoMs = new Date(ult.date).getTime() - diasAtras * 864e5;
+  const tol = Math.max(7, diasAtras * 0.2) * 864e5; // tolerância proporcional
+  let ref = null;
+  let melhor = Infinity;
+  for (const p of pontos) {
+    const gap = Math.abs(new Date(p.date).getTime() - alvoMs);
+    if (gap < melhor) { melhor = gap; ref = p; }
+  }
+  if (!ref || !ref.close || melhor > tol) return null;
+  return arred(((ult.close - ref.close) / ref.close) * 100);
+}
+
+// Aba "Mercado": tabela de índices (1D/30D/12M), spread arábica×robusta e séries
+// para os gráficos comparativos.
+export async function getMercado() {
+  const [cot, nyHist, usdHist] = await Promise.all([
+    getCotacoes(),
+    historicoKC("1A").catch(() => []),
+    serieUSD().catch(() => []),
+  ]);
+  const itens = cot.categorias.flatMap((c) => c.itens);
+  const get = (slug) => itens.find((i) => i.slug === slug);
+  const cepeaHist = await serieSnapshots("cepea-arabica").catch(() => []);
+
+  const ny = get("ice-arabica-ny");
+  const robusta = get("ice-robusta-londres");
+  const cepeaA = get("cepea-arabica");
+  const usd = cot.cambio.usdbrl;
+
+  const indices = [
+    ny && { nome: "ICE Arábica (NY)", unidade: "US¢/lb", valor: ny.valor, var1d: ny.variacaoPct, var30d: varDias(nyHist, 30), var12m: varDias(nyHist, 365) },
+    robusta && { nome: "Robusta (Londres)", unidade: "US$/ton", valor: robusta.valor, var1d: robusta.variacaoPct, var30d: null, var12m: null },
+    cepeaA && { nome: "CEPEA Arábica", unidade: "R$/saca", valor: cepeaA.valor, var1d: cepeaA.variacaoPct, var30d: varDias(cepeaHist, 30), var12m: varDias(cepeaHist, 365) },
+    usd != null && { nome: "Dólar comercial", unidade: "R$/US$", valor: usd, var1d: null, var30d: varDias(usdHist, 30), var12m: varDias(usdHist, 365) },
+  ].filter(Boolean);
+
+  // Spread arábica × robusta, ambos em US¢/lb.
+  let spread = null;
+  if (ny && robusta) {
+    const robustaCents = (robusta.valor / LB_POR_TON) * 100; // US$/ton -> US¢/lb
+    spread = {
+      valor: arred(ny.valor - robustaCents),
+      nyCents: arred(ny.valor),
+      robustaCents: arred(robustaCents),
+    };
+  }
+
+  return {
+    fetchedAt: cot.fetchedAt,
+    cambio: cot.cambio,
+    indices,
+    spread,
+    charts: {
+      ny: nyHist.map((p) => ({ date: p.date, close: p.close })),
+      usd: usdHist.map((p) => ({ date: p.date, close: p.close })),
+      cepea: cepeaHist,
+    },
+    aviso: cot.aviso,
+  };
+}
+
+export async function getClima() {
+  return getClimaOM();
 }
 
 // Exposto para o conversor no cliente, se necessário no futuro.

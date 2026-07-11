@@ -267,6 +267,20 @@ body {
 .conv-row { display: grid; grid-template-columns: 1fr auto; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
 .conv-out { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 600; }
 
+/* ---------- Tabelas (Mercado) ---------- */
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th {
+  text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--muted);
+  padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line);
+}
+.tbl td { padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tbl tbody tr:last-child td { border-bottom: 0; }
+.tbl tbody tr:nth-child(2n) { background: var(--surface-2); }
+.tbl .rt { text-align: right; }
+.tbl .ct { text-align: center; }
+.tbl .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
 /* ---------- Estados ---------- */
 .state { text-align: center; color: var(--muted); padding: var(--s7) var(--s4); }
 .spinner {

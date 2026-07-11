@@ -5,6 +5,7 @@ import { getCotacoes } from "./api.js";
 import { Tabs } from "./components/Tabs.jsx";
 import { Painel } from "./components/Painel.jsx";
 import { Cotacoes } from "./components/Cotacoes.jsx";
+import { Mercado } from "./components/Mercado.jsx";
 import { Conversor } from "./components/Conversor.jsx";
 import { Alertas } from "./components/Alertas.jsx";
 import { Detalhe } from "./components/Detalhe.jsx";
@@ -14,6 +15,7 @@ import { num, dataBR } from "./format.js";
 const TABS = [
   { id: "painel", label: "Painel" },
   { id: "cotacoes", label: "Cotações" },
+  { id: "mercado", label: "Mercado" },
   { id: "conversor", label: "Conversor" },
   { id: "alertas", label: "Alertas" },
 ];
@@ -66,6 +68,7 @@ export default function App() {
             <main>
               {tab === "painel" && <Painel dados={dados} />}
               {tab === "cotacoes" && <Cotacoes dados={dados} onOpen={setSlug} />}
+              {tab === "mercado" && <Mercado />}
               {tab === "conversor" && <Conversor dados={dados} />}
               {tab === "alertas" && <Alertas dados={dados} />}
             </main>

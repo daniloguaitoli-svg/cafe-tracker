@@ -10,6 +10,8 @@ um terminal Bloomberg:
 - **Futuros das bolsas** — ICE Arábica (Nova York), Arábica B3 (Brasil) e Robusta (Londres)
 - **Mercado físico regional** — preços por cooperativa/município (Sul de Minas, Cerrado, etc.)
 - **Câmbio oficial** — USD/BRL e EUR/BRL (PTAX, Banco Central)
+- **Mercado** — clima (chuva 30d vs. média histórica por região), spread arábica×robusta,
+  tabela de índices (1D/30D/12M) e gráficos comparativos (Dólar×NY, NY×CEPEA)
 - **Conversor** de unidades (¢/lb ↔ US$/saca ↔ US$/ton ↔ R$/saca) e **paridade de exportação**
 - **Alertas** de preço (salvos no próprio aparelho)
 
@@ -20,6 +22,7 @@ um terminal Bloomberg:
 | CEPEA, futuros ICE/B3/Londres, físico regional | [Notícias Agrícolas](https://www.noticiasagricolas.com.br/cotacoes/cafe) (que republica CEPEA/ESALQ, ICE, B3) |
 | Histórico do ICE Arábica (gráfico) | Yahoo Finance (`KC=F`) |
 | Câmbio USD/BRL e EUR/BRL | [Banco Central do Brasil (PTAX/SGS)](https://dadosabertos.bcb.gov.br) |
+| Clima (chuva por região) | [Open-Meteo](https://open-meteo.com) (Archive API, sem chave) |
 | Reforço dos indicadores CEPEA | Widget público do [CEPEA](https://www.cepea.org.br) |
 
 > **Equivalência com a planilha Bloomberg:** os valores batem com os tickers
