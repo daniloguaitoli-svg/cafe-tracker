@@ -263,6 +263,25 @@ body {
   border-radius: 999px; padding: 2px 8px; margin-top: var(--s2);
 }
 
+/* ---------- Data do preço / desatualizado ---------- */
+.pricedate { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.stale {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  color: var(--down); border: 1px solid var(--down);
+  border-radius: 999px; padding: 1px 7px;
+}
+.stale-banner {
+  display: flex; gap: var(--s2); align-items: flex-start;
+  background: color-mix(in srgb, var(--down) 10%, var(--surface));
+  border: 1px solid var(--down);
+  border-radius: var(--radius);
+  padding: var(--s3) var(--s4);
+  margin-top: var(--s4);
+  font-size: 13px;
+}
+.stale-banner b { color: var(--down); }
+
 /* ---------- Conversor ---------- */
 .conv-row { display: grid; grid-template-columns: 1fr auto; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
 .conv-out { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 600; }

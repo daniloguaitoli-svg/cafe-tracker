@@ -16,7 +16,21 @@ import { widgetCepea } from "./providers/cepea.js";
 import { serieUSD } from "./providers/bcb.js";
 import { getClima as getClimaOM } from "./providers/openmeteo.js";
 import { registrar, serieSnapshots } from "./store.js";
-import { paraReaisPorSaca, deReaisPorSaca, arred, hojeISO, LB_POR_SACA } from "./util.js";
+import { paraReaisPorSaca, deReaisPorSaca, arred, hojeISO, isoDeBR, diasUteisEntre, LB_POR_SACA } from "./util.js";
+
+// Um preço é considerado "desatualizado" quando a fonte não publica valor novo
+// há mais de 2 dias ÚTEIS (fins de semana não contam; a folga absorve feriados).
+const LIMITE_DIAS_UTEIS = 2;
+
+// Anota o item com data ISO + estado de atualização.
+function anotarData(item, dataBR) {
+  const dataISO = isoDeBR(dataBR) || (typeof dataBR === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dataBR) ? dataBR : null);
+  const dias = dataISO ? diasUteisEntre(dataISO, hojeISO()) : null;
+  item.data = dataISO;
+  item.diasSemAtualizar = dias;
+  item.desatualizado = dias == null ? true : dias > LIMITE_DIAS_UTEIS;
+  return item;
+}
 
 const LB_POR_TON = 2204.6226; // libras-peso por tonelada métrica (p/ spread)
 
@@ -35,47 +49,55 @@ function slugFisico(item) {
   return `fisico-${ascii}`;
 }
 
-function itemFuturo(slug, curva, usd) {
+function itemFuturo(slug, dado, usd) {
   const cat = porSlug[slug];
-  if (!curva || !curva.length) return null;
-  const front = curva[0];
-  return {
-    slug,
-    nome: cat.nome,
-    categoria: cat.categoria,
-    moeda: cat.moeda,
-    unidade: cat.unidade,
-    valor: arred(front.valor, cat.unidade === "USC_LB" ? 2 : 2),
-    valorBRLsaca: arred(paraReaisPorSaca({ valor: front.valor, unidade: cat.unidade, usdbrl: usd })),
-    variacaoPct: arred(front.variacaoPct),
-    contrato: front.contrato,
-    fonte: cat.fonte,
-    bloomberg: cat.bloomberg,
-    descricao: cat.descricao,
-  };
+  if (!dado || !dado.curva?.length) return null;
+  const front = dado.curva[0];
+  return anotarData(
+    {
+      slug,
+      nome: cat.nome,
+      categoria: cat.categoria,
+      moeda: cat.moeda,
+      unidade: cat.unidade,
+      valor: arred(front.valor, cat.unidade === "USC_LB" ? 2 : 2),
+      valorBRLsaca: arred(paraReaisPorSaca({ valor: front.valor, unidade: cat.unidade, usdbrl: usd })),
+      variacaoPct: arred(front.variacaoPct),
+      contrato: front.contrato,
+      fonte: cat.fonte,
+      bloomberg: cat.bloomberg,
+      descricao: cat.descricao,
+    },
+    dado.data
+  );
 }
 
 function itemCepea(slug, dado) {
   const cat = porSlug[slug];
   if (!dado) return null;
-  return {
-    slug,
-    nome: cat.nome,
-    categoria: cat.categoria,
-    moeda: cat.moeda,
-    unidade: cat.unidade,
-    valor: arred(dado.valor),
-    valorBRLsaca: arred(dado.valor),
-    variacaoPct: arred(dado.variacaoPct),
-    data: dado.data,
-    fonte: cat.fonte,
-    bloomberg: cat.bloomberg,
-    descricao: cat.descricao,
-  };
+  return anotarData(
+    {
+      slug,
+      nome: cat.nome,
+      categoria: cat.categoria,
+      moeda: cat.moeda,
+      unidade: cat.unidade,
+      valor: arred(dado.valor),
+      valorBRLsaca: arred(dado.valor),
+      variacaoPct: arred(dado.variacaoPct),
+      fonte: cat.fonte,
+      bloomberg: cat.bloomberg,
+      descricao: cat.descricao,
+    },
+    dado.data
+  );
 }
 
 export async function getCotacoes() {
-  const usd = await getUsdbrl();
+  // Série do BCB (cacheada) dá o valor E a data real da última PTAX publicada.
+  const usdSerie = await serieUSD();
+  const usdUltimo = usdSerie[usdSerie.length - 1] || null;
+  const usd = usdUltimo?.close ?? (await getUsdbrl());
   let na = null;
   try {
     na = await lerNoticiasAgricolas();
@@ -106,8 +128,8 @@ export async function getCotacoes() {
     const it = itemCepea(slug, dado);
     if (it) {
       cepea.push(it);
-      // Grava sempre em data ISO (hoje) para manter a série ordenável/uniforme.
-      await registrar(slug, hojeISO(), it.valorBRLsaca);
+      // Grava sob a data REAL do preço (ISO); se a fonte não informar, usa hoje.
+      await registrar(slug, it.data || hojeISO(), it.valorBRLsaca);
     }
   }
 
@@ -116,35 +138,52 @@ export async function getCotacoes() {
   const iceItem = futuros.find((f) => f.slug === "ice-arabica-ny");
   const cepeaArabica = cepea.find((c) => c.slug === "cepea-arabica");
   if (iceItem && iceItem.valorBRLsaca != null) {
-    exportacao.push({
-      slug: "paridade-ice-brl",
-      nome: "Paridade de exportação (ICE em R$/saca)",
-      categoria: CATEGORIAS.EXPORTACAO,
-      moeda: "R$/saca",
-      unidade: "BRL_SACA",
-      valor: iceItem.valorBRLsaca,
-      valorBRLsaca: iceItem.valorBRLsaca,
-      variacaoPct: iceItem.variacaoPct,
-      fonte: "Derivado: ICE Arábica × PTAX",
-      descricao:
-        "Preço do arábica de Nova York convertido para R$ por saca de 60 kg — a paridade bruta de exportação.",
-    });
+    // Derivado herda a data do componente (o ICE); anotarData espera BR ou ISO.
+    exportacao.push(
+      anotarData(
+        {
+          slug: "paridade-ice-brl",
+          nome: "Paridade de exportação (ICE em R$/saca)",
+          categoria: CATEGORIAS.EXPORTACAO,
+          moeda: "R$/saca",
+          unidade: "BRL_SACA",
+          valor: iceItem.valorBRLsaca,
+          valorBRLsaca: iceItem.valorBRLsaca,
+          variacaoPct: iceItem.variacaoPct,
+          fonte: "Derivado: ICE Arábica × PTAX",
+          descricao:
+            "Preço do arábica de Nova York convertido para R$ por saca de 60 kg — a paridade bruta de exportação.",
+        },
+        iceItem.data
+      )
+    );
   }
   if (iceItem && cepeaArabica && cepeaArabica.valorBRLsaca != null && iceItem.valorBRLsaca != null) {
     const dif = cepeaArabica.valorBRLsaca - iceItem.valorBRLsaca;
-    exportacao.push({
-      slug: "diferencial-cepea-ice",
-      nome: "Diferencial doméstico × ICE (aprox.)",
-      categoria: CATEGORIAS.EXPORTACAO,
-      moeda: "R$/saca",
-      unidade: "BRL_SACA",
-      valor: arred(dif),
-      valorBRLsaca: arred(dif),
-      variacaoPct: null,
-      fonte: "Derivado: CEPEA − paridade ICE",
-      descricao:
-        "Diferença entre o indicador CEPEA arábica e a paridade ICE. Positivo = mercado interno acima da paridade de exportação. Aproximação (não é o diferencial oficial de Santos).",
-    });
+    // Herda a data mais ANTIGA dos dois componentes: o derivado só é tão fresco
+    // quanto o insumo menos atualizado.
+    const dataMaisAntiga =
+      iceItem.data && cepeaArabica.data
+        ? (iceItem.data < cepeaArabica.data ? iceItem.data : cepeaArabica.data)
+        : iceItem.data || cepeaArabica.data;
+    exportacao.push(
+      anotarData(
+        {
+          slug: "diferencial-cepea-ice",
+          nome: "Diferencial doméstico × ICE (aprox.)",
+          categoria: CATEGORIAS.EXPORTACAO,
+          moeda: "R$/saca",
+          unidade: "BRL_SACA",
+          valor: arred(dif),
+          valorBRLsaca: arred(dif),
+          variacaoPct: null,
+          fonte: "Derivado: CEPEA − paridade ICE",
+          descricao:
+            "Diferença entre o indicador CEPEA arábica e a paridade ICE. Positivo = mercado interno acima da paridade de exportação. Aproximação (não é o diferencial oficial de Santos).",
+        },
+        dataMaisAntiga
+      )
+    );
   }
 
   // ---- Mercado físico regional ----
@@ -152,21 +191,25 @@ export async function getCotacoes() {
   if (na?.fisico?.length) {
     for (const item of na.fisico) {
       const slug = slugFisico(item);
-      fisico.push({
-        slug,
-        nome: item.local,
-        subgrupo: item.grupo,
-        categoria: CATEGORIAS.FISICO,
-        moeda: "R$/saca",
-        unidade: "BRL_SACA",
-        valor: arred(item.valorBRLsaca),
-        valorBRLsaca: arred(item.valorBRLsaca),
-        variacaoPct: arred(item.variacaoPct),
-        municipio: item.municipio,
-        cooperativa: item.cooperativa,
-        fonte: "Mercado físico (via Notícias Agrícolas)",
-      });
-      await registrar(slug, hojeISO(), item.valorBRLsaca);
+      const it = anotarData(
+        {
+          slug,
+          nome: item.local,
+          subgrupo: item.grupo,
+          categoria: CATEGORIAS.FISICO,
+          moeda: "R$/saca",
+          unidade: "BRL_SACA",
+          valor: arred(item.valorBRLsaca),
+          valorBRLsaca: arred(item.valorBRLsaca),
+          variacaoPct: arred(item.variacaoPct),
+          municipio: item.municipio,
+          cooperativa: item.cooperativa,
+          fonte: "Mercado físico (via Notícias Agrícolas)",
+        },
+        item.data
+      );
+      fisico.push(it);
+      await registrar(slug, it.data || hojeISO(), item.valorBRLsaca);
     }
   }
 
@@ -177,11 +220,11 @@ export async function getCotacoes() {
     { nome: CATEGORIAS.FISICO, itens: fisico },
   ].filter((c) => c.itens.length);
 
+  const cambio = anotarData({ usdbrl: arred(usd, 4) }, usdUltimo?.date || null);
+
   return {
     fetchedAt: na?.fetchedAt || new Date().toISOString(),
-    cambio: {
-      usdbrl: arred(usd, 4),
-    },
+    cambio,
     fatorSaca: arred(LB_POR_SACA, 4),
     categorias,
     aviso: AVISO,
@@ -281,10 +324,10 @@ export async function getMercado() {
   const usd = cot.cambio.usdbrl;
 
   const indices = [
-    ny && { nome: "ICE Arábica (NY)", unidade: "US¢/lb", valor: ny.valor, var1d: ny.variacaoPct, var30d: varDias(nyHist, 30), var12m: varDias(nyHist, 365) },
-    robusta && { nome: "Robusta (Londres)", unidade: "US$/ton", valor: robusta.valor, var1d: robusta.variacaoPct, var30d: null, var12m: null },
-    cepeaA && { nome: "CEPEA Arábica", unidade: "R$/saca", valor: cepeaA.valor, var1d: cepeaA.variacaoPct, var30d: varDias(cepeaHist, 30), var12m: varDias(cepeaHist, 365) },
-    usd != null && { nome: "Dólar comercial", unidade: "R$/US$", valor: usd, var1d: null, var30d: varDias(usdHist, 30), var12m: varDias(usdHist, 365) },
+    ny && { nome: "ICE Arábica (NY)", unidade: "US¢/lb", valor: ny.valor, var1d: ny.variacaoPct, var30d: varDias(nyHist, 30), var12m: varDias(nyHist, 365), data: ny.data, desatualizado: ny.desatualizado },
+    robusta && { nome: "Robusta (Londres)", unidade: "US$/ton", valor: robusta.valor, var1d: robusta.variacaoPct, var30d: null, var12m: null, data: robusta.data, desatualizado: robusta.desatualizado },
+    cepeaA && { nome: "CEPEA Arábica", unidade: "R$/saca", valor: cepeaA.valor, var1d: cepeaA.variacaoPct, var30d: varDias(cepeaHist, 30), var12m: varDias(cepeaHist, 365), data: cepeaA.data, desatualizado: cepeaA.desatualizado },
+    usd != null && { nome: "Dólar comercial", unidade: "R$/US$", valor: usd, var1d: null, var30d: varDias(usdHist, 30), var12m: varDias(usdHist, 365), data: cot.cambio.data, desatualizado: cot.cambio.desatualizado },
   ].filter(Boolean);
 
   // Spread arábica × robusta, ambos em US¢/lb.

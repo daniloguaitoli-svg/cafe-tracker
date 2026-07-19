@@ -50,6 +50,16 @@ export function Detalhe({ slug, onBack }) {
               {item.unidade !== "BRL_SACA" && item.valorBRLsaca != null && (
                 <div className="muted mono" style={{ fontSize: 13 }}>≈ {reais(item.valorBRLsaca)}/saca 60 kg</div>
               )}
+              {item.desatualizado ? (
+                <div style={{ marginTop: 8 }}>
+                  <span className="stale">
+                    ⚠ sem atualização desde {item.data ? dataBR(item.data) : "data desconhecida"}
+                    {item.diasSemAtualizar != null && ` (${item.diasSemAtualizar} dias úteis)`}
+                  </span>
+                </div>
+              ) : (
+                item.data && <div className="pricedate" style={{ marginTop: 8 }}>Preço publicado em {dataBR(item.data)}</div>
+              )}
             </div>
           </div>
 

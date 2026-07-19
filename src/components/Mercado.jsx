@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getMercado, getClima } from "../api.js";
 import { DualChart } from "./DualChart.jsx";
 import { Loading, ErroBox } from "./States.jsx";
-import { num, pct, sinal } from "../format.js";
+import { num, pct, sinal, dataCurtaBR, dataBR } from "../format.js";
 
 const CORES_STATUS = { ok: "var(--up)", atencao: "var(--accent)", seca: "var(--down)" };
 const ROTULO_STATUS = { ok: "normal/úmido", atencao: "atenção", seca: "seca" };
@@ -105,7 +105,14 @@ export function Mercado() {
                   <tr key={i.nome}>
                     <td>
                       <div style={{ fontWeight: 600 }}>{i.nome}</div>
-                      <div className="muted" style={{ fontSize: 11 }}>{i.unidade}</div>
+                      <div className="muted" style={{ fontSize: 11 }}>
+                        {i.unidade}
+                        {i.data && (
+                          i.desatualizado
+                            ? <> · <span className="stale" title={`Sem atualização desde ${dataBR(i.data)}`}>⚠ {dataCurtaBR(i.data)}</span></>
+                            : <span className="pricedate"> · {dataCurtaBR(i.data)}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="rt mono">{num(i.valor, i.unidade === "R$/US$" ? 4 : 2)}</td>
                     {celVar(i.var1d)}{celVar(i.var30d)}{celVar(i.var12m)}

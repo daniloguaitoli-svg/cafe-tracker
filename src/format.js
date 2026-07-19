@@ -39,6 +39,12 @@ export function dataBR(iso) {
   return `${d[2]}/${d[1]}/${d[0]}`;
 }
 
+// "2026-07-09" -> "09/07" (curta, para as linhas da lista).
+export function dataCurtaBR(iso) {
+  const cheia = dataBR(iso);
+  return cheia ? cheia.slice(0, 5) : "";
+}
+
 export function horaBR(iso) {
   if (!iso) return "";
   try {

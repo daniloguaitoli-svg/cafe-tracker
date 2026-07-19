@@ -64,3 +64,25 @@ export function hojeISO() {
   const agora = new Date(Date.now() - 3 * 3600 * 1000);
   return agora.toISOString().slice(0, 10);
 }
+
+// "17/07/2026" -> "2026-07-17" (null se não parecer data BR).
+export function isoDeBR(dataBR) {
+  const m = String(dataBR || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+}
+
+// Dias ÚTEIS (seg–sex) decorridos de `deISO` (exclusive) até `ateISO` (inclusive).
+// Feriados não são considerados — a folga de 2 dias úteis na regra de
+// "desatualizado" absorve os feriados nacionais isolados.
+export function diasUteisEntre(deISO, ateISO) {
+  if (!deISO || !ateISO || deISO >= ateISO) return 0;
+  let n = 0;
+  const d = new Date(deISO + "T12:00:00Z");
+  const fim = new Date(ateISO + "T12:00:00Z");
+  while (d < fim) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) n++;
+  }
+  return n;
+}

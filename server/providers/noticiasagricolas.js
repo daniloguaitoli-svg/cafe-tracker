@@ -22,7 +22,9 @@ let cache = null; // { ts, dados }
 
 const strip = (s) => s.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 
-// Extrai [{ heading, header:[...], rows:[[...]] }] de todo o HTML.
+// Extrai [{ heading, header:[...], rows:[[...]], atualizadoEm }] de todo o HTML.
+// `atualizadoEm` ("dd/mm/aaaa") vem do rodapé "Atualizado em: ..." que a página
+// imprime logo após cada tabela de cotações — é a data real daquele preço.
 function extrairTabelas(html) {
   const tabelas = [];
   const reTable = /<table[^>]*>([\s\S]*?)<\/table>/gi;
@@ -36,7 +38,10 @@ function extrairTabelas(html) {
     const rows = [...corpo.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
       .map((r) => [...r[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((c) => strip(c[1])))
       .filter((cells) => cells.length > 0);
-    tabelas.push({ heading, header, rows });
+    // O rodapé "Ver histórico | Atualizado em: dd/mm/aaaa" fica DENTRO da própria
+    // <table> (última linha), então basta procurar no corpo dela.
+    const atualizadoEm = corpo.match(/Atualizado\s+em:?\s*(\d{2}\/\d{2}\/\d{4})/i)?.[1] || null;
+    tabelas.push({ heading, header, rows, atualizadoEm });
   }
   return tabelas;
 }
@@ -67,7 +72,7 @@ function parseCurvaFuturos(tabela, colValor, { pontos = false } = {}) {
       };
     })
     .filter(Boolean);
-  return curva.length ? curva : null;
+  return curva.length ? { curva, data: tabela.atualizadoEm } : null;
 }
 
 function parseIndicadorCepea(tabela) {
@@ -75,7 +80,8 @@ function parseIndicadorCepea(tabela) {
   const [data, valorTxt, varTxt] = tabela.rows[0];
   const valor = parseNumBR(valorTxt);
   if (valor == null) return null;
-  return { valor, variacaoPct: parseNumBR(varTxt), data };
+  // A 1ª coluna da linha é a data do indicador; o rodapé é o reserva.
+  return { valor, variacaoPct: parseNumBR(varTxt), data: data || tabela.atualizadoEm };
 }
 
 function parseFisico(tabela, grupo) {
@@ -94,6 +100,7 @@ function parseFisico(tabela, grupo) {
         valorBRLsaca: valor,
         variacaoPct: parseNumBR(cells[2]),
         grupo,
+        data: tabela.atualizadoEm,
       };
     })
     .filter(Boolean);

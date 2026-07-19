@@ -1,7 +1,7 @@
 // components/Cotacoes.jsx — lista de todos os indicadores, agrupados por categoria,
 // com busca e filtro. Toque numa linha abre o Detalhe.
 import { useMemo, useState } from "react";
-import { num, pct, sinal, reais } from "../format.js";
+import { num, pct, sinal, reais, dataCurtaBR, dataBR } from "../format.js";
 
 function Linha({ item, onOpen }) {
   const mostraBRL = item.unidade !== "BRL_SACA" && item.valorBRLsaca != null;
@@ -20,6 +20,13 @@ function Linha({ item, onOpen }) {
         </div>
         {item.variacaoPct != null && <div className={`d ${sinal(item.variacaoPct)}`}>{pct(item.variacaoPct)}</div>}
         {mostraBRL && <div className="brl">≈ {reais(item.valorBRLsaca)}/sc</div>}
+        {item.desatualizado ? (
+          <div title={item.data ? `Último preço em ${dataBR(item.data)}` : "Fonte não informou a data"}>
+            <span className="stale">⚠ {item.data ? dataCurtaBR(item.data) : "sem data"}</span>
+          </div>
+        ) : (
+          item.data && <div className="pricedate">{dataCurtaBR(item.data)}</div>
+        )}
       </div>
     </button>
   );
