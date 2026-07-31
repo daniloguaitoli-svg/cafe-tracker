@@ -23,7 +23,7 @@ um terminal Bloomberg:
 | Histórico do ICE Arábica (gráfico) | Yahoo Finance (`KC=F`) |
 | Câmbio USD/BRL e EUR/BRL | [Banco Central do Brasil (PTAX/SGS)](https://dadosabertos.bcb.gov.br) |
 | Clima (chuva por região) | [Open-Meteo](https://open-meteo.com) (Archive API, sem chave) |
-| Reforço dos indicadores CEPEA | Widget público do [CEPEA](https://www.cepea.org.br) |
+| Reforço dos indicadores CEPEA | Widget público do [CEPEA](https://www.cepea.org.br), lido ao vivo no seu computador e por coleta agendada (GitHub Actions) em produção |
 
 > **Equivalência com a planilha Bloomberg:** os valores batem com os tickers
 > originais (ex.: Indicador CEPEA Arábica = `BAINCOFE`; ICE `KC1`; Robusta `DF1`;
@@ -78,7 +78,20 @@ public/         manifest e service worker (PWA)
 - **Histórico real** existe para o ICE Arábica (Yahoo) e o câmbio (BCB). Para
   CEPEA e mercado físico **não há API gratuita de série histórica**, então o app
   guarda um **snapshot por dia** e o gráfico desses indicadores **cresce com o
-  tempo** (começa curto). Na Vercel esses snapshots ficam em `/tmp` (efêmero).
+  tempo** (começa curto). Na Vercel esses snapshots ficam em `/tmp` (efêmero) —
+  a exceção são os indicadores CEPEA, cuja série é acumulada no repositório pelo
+  job de coleta (ver abaixo) e por isso **persiste**.
+- **O site do CEPEA bloqueia servidores.** O `cepea.org.br` está atrás de um
+  desafio anti-bot da Cloudflare que responde **403** a qualquer servidor (nas
+  funções da Vercel, em qualquer região), mas responde normalmente a partir dos
+  runners do GitHub. Como aqui o CEPEA é o **fallback** dos indicadores (a fonte
+  primária é a Notícias Agrícolas), sem isso o app ficaria sem rede de proteção
+  em produção. Por isso o workflow `.github/workflows/coletar-cepea.yml` roda
+  duas vezes por dia e versiona o resultado em `server/cepea-cache.json`; o app
+  lê a fonte ao vivo em desenvolvimento e cai nesse arquivo em produção (a tela
+  do indicador avisa quando o valor veio do cache). Se o repositório ficar 60
+  dias sem atividade, o GitHub suspende workflows agendados — basta reativar na
+  aba Actions.
 - A leitura da Notícias Agrícolas é **melhor esforço**: se eles mudarem o HTML,
   o arquivo `server/providers/noticiasagricolas.js` precisa de um ajuste.
 - O "diferencial doméstico × ICE" é uma **aproximação didática**, não o

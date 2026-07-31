@@ -1,0 +1,23 @@
+{
+ "atualizadoEm": "2026-07-31T11:10:39.166Z",
+ "indicadores": {
+  "cepea-arabica": {
+   "valor": 1746.47,
+   "data": "30/07/2026",
+   "produto": "Café Arábica sc de 60kg"
+  },
+  "cepea-robusta": {
+   "valor": 1080.81,
+   "data": "30/07/2026",
+   "produto": "Café Robusta sc de 60kg"
+  }
+ },
+ "historico": {
+  "cepea-arabica": {
+   "2026-07-30": 1746.47
+  },
+  "cepea-robusta": {
+   "2026-07-30": 1080.81
+  }
+ }
+}
