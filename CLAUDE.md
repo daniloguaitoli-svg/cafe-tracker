@@ -129,12 +129,13 @@ Forgetting the last one means it works in dev and 404s in production.
 | `cepeaId` | CEPEA widget id (arabica 23, robusta 24) |
 | `yahoo` | Yahoo symbol when free history exists (only `KC=F`) |
 | `bloomberg` | reference ticker from `Café.xlsx` — not fetched, but **displayed** as a pill in Detalhe |
-| `secao` | **dead field — nothing reads it.** See below |
 
-> `secao` is declared in the header comment and set on all five entries, but no
-> code anywhere reads it. The scraper matches headings by its own anchored
-> regexes, so editing `secao` changes nothing. Don't wire new behaviour to it
-> expecting it to already work, and don't assume a scraping bug lives there.
+Every field above is actually read by something. A `secao` field (the heading
+title on the Notícias Agrícolas page) used to sit here on all five entries but
+was never read by any code, so it was removed — the scraper matches headings
+with its own anchored regexes in `providers/noticiasagricolas.js`, independently
+of the catalogue. If you need to tie an indicator to a specific heading, that
+matching lives in the provider, not here.
 
 The only derived export is `porSlug`. Note what this catalogue does **not** have,
 unlike the sibling Cana Tracker: no `periodicidade`, no `principal`, no

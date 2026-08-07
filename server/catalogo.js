@@ -6,7 +6,6 @@
 //   slug      — identificador estável usado nas rotas /api
 //   nome      — rótulo em português
 //   categoria — agrupa na tela de Cotações
-//   secao     — título da seção na página da Notícias Agrícolas (fonte primária)
 //   unidade   — unidade nativa: USC_LB | USD_SACA | USD_TON | BRL_SACA
 //   moeda     — rótulo da moeda nativa
 //   fonte     — crédito exibido
@@ -25,7 +24,6 @@ export const CATALOGO = [
     slug: "ice-arabica-ny",
     nome: "ICE Arábica — Nova York (NYBOT)",
     categoria: CATEGORIAS.FUTUROS,
-    secao: "Bolsa de Nova Iorque",
     unidade: "USC_LB",
     moeda: "US¢/lb",
     fonte: "ICE / NYBOT (via Notícias Agrícolas)",
@@ -38,7 +36,6 @@ export const CATALOGO = [
     slug: "b3-arabica",
     nome: "Arábica 4/5 — B3 (Brasil)",
     categoria: CATEGORIAS.FUTUROS,
-    secao: "B3 (Pregão Regular)",
     unidade: "USD_SACA",
     moeda: "US$/saca",
     fonte: "B3 (via Notícias Agrícolas)",
@@ -50,7 +47,6 @@ export const CATALOGO = [
     slug: "ice-robusta-londres",
     nome: "ICE Robusta — Londres",
     categoria: CATEGORIAS.FUTUROS,
-    secao: "Bolsa de Londres",
     unidade: "USD_TON",
     moeda: "US$/ton",
     fonte: "ICE Futures Europe (via Notícias Agrícolas)",
@@ -62,7 +58,6 @@ export const CATALOGO = [
     slug: "cepea-arabica",
     nome: "CEPEA/ESALQ — Café Arábica",
     categoria: CATEGORIAS.CEPEA,
-    secao: "Indicador Café Arábica",
     unidade: "BRL_SACA",
     moeda: "R$/saca",
     fonte: "CEPEA-ESALQ/USP (via Notícias Agrícolas)",
@@ -75,7 +70,6 @@ export const CATALOGO = [
     slug: "cepea-robusta",
     nome: "CEPEA/ESALQ — Café Robusta/Conilon",
     categoria: CATEGORIAS.CEPEA,
-    secao: "Indicador Café Robusta",
     unidade: "BRL_SACA",
     moeda: "R$/saca",
     fonte: "CEPEA-ESALQ/USP (via Notícias Agrícolas)",
