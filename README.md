@@ -1,5 +1,7 @@
 # ☕ Café Tracker — Preços do Café no Brasil
 
+**App no ar:** [cafe-tracker-gold.vercel.app](https://cafe-tracker-gold.vercel.app)
+
 App web (PWA) para acompanhar os preços do café no mercado brasileiro — mercado
 **físico** e de **exportação** — todo em português. Inspirado no ETF Tracker.
 
